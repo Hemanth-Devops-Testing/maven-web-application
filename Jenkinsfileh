@@ -1,0 +1,35 @@
+node{
+    
+    
+    properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], 
+    pipelineTriggers([pollSCM('* * * * *')])])
+
+def mavenHome = tool name: "Maven3.8.4" 
+
+stage('checkoutCode'){
+git branch: 'development', credentialsId: '0a495dd6-b2a7-42f9-8716-190f659a0b6e', url: 'https://github.com/Hemanth-Devops-Testing/maven-web-application.git'
+}
+
+stage('build'){
+sh "${mavenHome}/bin/mvn clean package"
+}
+
+stage('ExecuteSonarqubeReport'){
+sh "${mavenHome}/bin/mvn sonar:sonar"
+}
+
+stage('UploadArtifacttoNexus'){
+sh "${mavenHome}/bin/mvn deploy"
+}
+
+stage('DeployApllicationIntoTomcat'){
+sshagent(['efc9382c-ceb1-46b6-b154-2eea0045c14f']) {
+//some block
+ sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.109.5.244:/opt/apache-tomcat-9.0.58/webapps"
+
+}
+
+
+}
+
+}
