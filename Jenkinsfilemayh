@@ -1,0 +1,28 @@
+node {
+   
+     properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')),
+     pipelineTriggers([pollSCM('* * * * *')])])    
+   
+    def mavenHome =  tool name:"Maven3.8.5"
+
+    stage('Checkout Project') { 
+       git branch: 'development', credentialsId: '5d0ae178-fdca-49ea-960e-afe859eb64b0', url: 'https://github.com/Hemanth-Devops-Testing/maven-web-application.git'
+    }
+    stage('making the build'){
+        sh "${mavenHome}/bin/mvn clean package"
+    }
+    stage('Sonarqube report'){
+        sh "${mavenHome}/bin/mvn sonar:sonar"
+    }
+    stage('Upload into Nexus atrifactory Repo'){
+        sh "${mavenHome}/bin/mvn deploy"
+    }
+    stage('Tomcat server Deployment'){
+        sshagent(['c39e3194-b5db-40b4-9c66-d439eefa27a3']) {
+            
+        sh "scp -o  StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.111.47.51:/opt/apache-tomcat-9.0.62/webapps/"
+        
+        }
+    }
+    
+}
